@@ -148,30 +148,39 @@ jobs:
           
           if [ -f "$CHANGELOG_PATH" ]; then
             # 使用手动编写的变更日志
-            CONTENT=$(cat "$CHANGELOG_PATH")
             echo "✅ 使用手动变更日志: $CHANGELOG_PATH"
+            # 使用文件避免特殊字符问题
+            cp "$CHANGELOG_PATH" changelog_temp.txt
           else
             # 自动生成变更日志
             echo "⚠️ 未找到 $CHANGELOG_PATH，自动生成"
             
             LAST_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || git rev-list --max-parents=0 HEAD)
-            COMMITS=$(git log "$LAST_TAG..HEAD" --pretty=format:"- %s (%h)" --no-merges 2>/dev/null || echo "- 版本更新")
             
-            # 修复：简化格式，只有一个 "## 变更内容"，删除重复的提示
-            CONTENT=$(printf "%s\n\n*日志由action自动生成*" "$COMMITS")
+            # 直接写入文件，避免变量传递问题
+            {
+              git log "$LAST_TAG..HEAD" --pretty=format:"- %s (%h)" --no-merges 2>/dev/null || echo "- 版本更新"
+              echo ""
+              echo "*日志由action自动生成*"
+            } > changelog_temp.txt
           fi
           
-          CONTENT_B64=$(echo "$CONTENT" | base64 -w 0)
+          # 使用 base64 编码整个文件
+          CONTENT_B64=$(base64 -w 0 < changelog_temp.txt)
           echo "changelog_b64=$CONTENT_B64" >> $GITHUB_OUTPUT
 
       - name: Decode changelog
         id: decode_changelog
         shell: bash
         run: |
+          # 解码 base64 内容到文件
           echo "${{ steps.read_changelog.outputs.changelog_b64 }}" | base64 -d > changelog_output.txt
-          echo "changelog<<CHANGELOG_EOF" >> $GITHUB_OUTPUT
-          cat changelog_output.txt >> $GITHUB_OUTPUT
-          echo "CHANGELOG_EOF" >> $GITHUB_OUTPUT
+          
+          # 直接读取文件内容，通过文件传递避免特殊字符问题
+          cat changelog_output.txt > changelog_final.txt
+          
+          # 使用文件引用方式传递
+          echo "changelog_file=changelog_final.txt" >> $GITHUB_OUTPUT
 
   build:
     needs: prepare
@@ -281,13 +290,14 @@ jobs:
             SIZE_STR=$(awk "BEGIN {printf \"%.2f MB\", $SIZE/1048576}")
           fi
           
-          CHANGELOG="${{ needs.prepare.outputs.changelog }}"
+          # 从文件读取变更日志
+          CHANGELOG_FILE="${{ needs.prepare.outputs.changelog_file }}"
           
-          # 修复：只在手动生成时添加 "## 变更内容" 标题
+          # 生成发布正文到文件
           {
             echo "## 变更内容"
             echo ""
-            echo "$CHANGELOG"
+            cat "$CHANGELOG_FILE"
             echo ""
             echo "## 文件信息"
             echo ""
@@ -298,6 +308,7 @@ jobs:
             echo "<!-- CLASSISLAND_PKG_MD5 {\"${{ env.PLUGIN_NAME }}.${VERSION}.cipx\":\"${MD5}\"} -->"
           } > release_body.txt
           
+          # 使用文件引用方式传递，避免特殊字符问题
           echo "body<<BODY_EOF" >> $GITHUB_OUTPUT
           cat release_body.txt >> $GITHUB_OUTPUT
           echo "BODY_EOF" >> $GITHUB_OUTPUT
