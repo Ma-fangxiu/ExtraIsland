@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.Text.Json.Serialization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using ExtraIsland.Shared;
@@ -68,6 +68,54 @@ public class RhesisConfig : ObservableObject {
         set {
             if (value == _attributesRule) return;
             _attributesRule = value;
+            OnPropertyChanged();
+        }
+    }
+
+    // 自定义内容轮播相关属性
+    private bool _isCustomContentEnabled = false;
+    public bool IsCustomContentEnabled {
+        get => _isCustomContentEnabled;
+        set {
+            if (_isCustomContentEnabled == value) return;
+            _isCustomContentEnabled = value;
+            OnPropertyChanged();
+        }
+    }
+
+    private string _customContentList = "";
+    public string CustomContentList {
+        get => _customContentList;
+        set {
+            if (_customContentList == value) return;
+            _customContentList = value;
+            OnPropertyChanged();
+        }
+    }
+
+    private TimeSpan _customContentUpdateGap = TimeSpan.FromSeconds(30);
+    public TimeSpan CustomContentUpdateGap {
+        get => _customContentUpdateGap;
+        set {
+            if (_customContentUpdateGap == value) return;
+            _customContentUpdateGap = value;
+            OnPropertyChanged();
+        }
+    }
+
+    [JsonIgnore]
+    public double CustomContentUpdateGapSeconds {
+        get => CustomContentUpdateGap.TotalSeconds;
+        set => CustomContentUpdateGap = TimeSpan.FromSeconds(value);
+    }
+
+    private int _currentCustomIndex = 0;
+    [JsonIgnore]
+    public int CurrentCustomIndex {
+        get => _currentCustomIndex;
+        set {
+            if (_currentCustomIndex == value) return;
+            _currentCustomIndex = value;
             OnPropertyChanged();
         }
     }
