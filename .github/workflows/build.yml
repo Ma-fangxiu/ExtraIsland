@@ -182,6 +182,12 @@ jobs:
           # 使用文件引用方式传递
           echo "changelog_file=changelog_final.txt" >> $GITHUB_OUTPUT
 
+      - name: Upload changelog artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: changelog
+          path: changelog_final.txt
+
   build:
     needs: prepare
     runs-on: windows-2022
@@ -269,6 +275,12 @@ jobs:
       contents: write
 
     steps:
+      - name: Download changelog artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: changelog
+          path: .
+
       - name: Download Artifact
         uses: actions/download-artifact@v4
         with:
@@ -291,7 +303,7 @@ jobs:
           fi
           
           # 从文件读取变更日志
-          CHANGELOG_FILE="${{ needs.prepare.outputs.changelog_file }}"
+          CHANGELOG_FILE="changelog_final.txt"
           
           # 生成发布正文到文件
           {
