@@ -1,4 +1,4 @@
-﻿using System.Text.RegularExpressions;
+using System.Text.RegularExpressions;
 using Avalonia.Data.Converters;
 using ClassIsland.Core.Abstractions.Controls;
 using ExtraIsland.ConfigHandlers;
